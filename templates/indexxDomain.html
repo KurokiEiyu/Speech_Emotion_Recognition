@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="../static/css/templatemo-real-dynamic.css" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Emotion Recognition</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="tm-container">
+    <div class="tm-site-header"></div> <!-- tm-site-header -->
+    
+    <div class="row">
+        <div class="col-lg-3 text-center">
+            <p><img src="../static/img/logo.png" alt="Emotion Predictor" width="100%"></p>
+        </div>
+
+        <div class="col-lg-9 tm-site-header-right">
+            <div class="navbar navbar-expand-lg ">
+                <button class="navbar-toggler toggler-example" type="button" data-toggle="collapse"
+                        data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false"
+                        aria-label="Toggle navigation"><span class="dark-blue-text"><i
+                        class="fas fa-bars text-white"></i></span></button>
+                <div class="collapse navbar-collapse tm-nav" id="navbarNav">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item active">
+                            <a class="nav-link tm-nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tm-header-stripe w-100 container-fluid"></div>
+    <div class="container-fluid text-white text-center">
+        <h3>How You Really Feel?</h3>
+    </div>
+    
+    <div class="container-fluid">
+        <div class="row bgimg">
+            <div class="col-0"></div>
+            <div class="col-6"><br>
+                <div class="jumbotron text-center">
+                    <h1>Speech Emotion Recognition</h1>
+                    <p>Click the button below to start recording:</p>
+                    <button id="startButton" onclick="startRecording()">Start Recording</button>
+                    <button id="stopButton" onclick="stopRecording()" disabled>Stop Recording</button>
+
+                    <div id="audioList"></div>
+                    <h2>Result</h2>
+                    <p id="emotionResult">Detected Emotion: <span id="emotionText"></span></p>
+                    <p id="accuracyResult">Accuracy: <span id="accuracyText"></span>%</p>
+                    
+                    
+                    <script>
+                        let chunks = [];
+                        let recorder;
+
+                        function startRecording() {
+                            navigator.mediaDevices.getUserMedia({ audio: true })
+                                .then(function(stream) {
+                                    recorder = new MediaRecorder(stream);
+                                    recorder.ondataavailable = function(e) {
+                                        chunks.push(e.data);
+                                    };
+                                    recorder.start();
+                                    $('#startButton').prop('disabled', true);
+                                    $('#stopButton').prop('disabled', false);
+                                });
+                        }
+
+                        function stopRecording() {
+                            recorder.stop();
+                            recorder.onstop = function() {
+                                let audioBlob = new Blob(chunks, { 'type' : 'audio/wav; codecs=opus' });
+                                chunks = [];
+                                let audioURL = URL.createObjectURL(audioBlob);
+                                let audioElement = document.createElement('audio');
+                                audioElement.controls = true;
+                                audioElement.src = audioURL;
+                                document.getElementById('audioList').appendChild(audioElement);
+
+                                let formData = new FormData();
+                                formData.append('audio', audioBlob);
+
+                                fetch('/record', { method: 'POST', body: formData })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        document.getElementById('emotionText').innerText = data.emotion;
+                                        document.getElementById('accuracyText').innerText = data.accuracy.toFixed(2); // Show accuracy
+                                        document.getElementById('backButton').style.display = 'inline-block'; // Show back button
+                                    });
+                                
+                                $('#startButton').prop('disabled', false);
+                                $('#stopButton').prop('disabled', true);
+                            };
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
